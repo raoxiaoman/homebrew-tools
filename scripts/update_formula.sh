@@ -54,7 +54,7 @@ rm -f "$CACHE_PATH"/*${FORMULA_NAME}* 2>/dev/null || true
 # 下载 tar.gz 并计算 SHA256
 TMPFILE=$(mktemp)
 echo "⬇️  下载 tar.gz ..."
-curl -L -s -o "$TMPFILE" "$TAR_URL"
+curl -L --header "Accept: application/octet-stream" -o "$TMPFILE" "$TAR_URL"
 
 SHA256=$(shasum -a 256 "$TMPFILE" | awk '{print $1}')
 rm -f "$TMPFILE"

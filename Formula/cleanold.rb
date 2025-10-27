@@ -2,7 +2,7 @@ class Cleanold < Formula
   desc "Clean up old files by moving them to macOS Trash"
   homepage "https://github.com/raoxiaoman/homebrew-tools"
   url "https://github.com/raoxiaoman/homebrew-tools/archive/refs/tags/v1.0.1.tar.gz"
-  sha256 "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
+  sha256 "9457dc8fccd56f6830ae1f492d568aff2d263b5bdaa7bd73a7c3ed0a962ca41c"
   license "MIT"
 
   def install

@@ -1,0 +1,90 @@
+#!/bin/bash
+#
+# cleanold - 清理指定目录中过期文件到 macOS 垃圾桶
+# -----------------------------------------
+
+TARGET_DIR=""
+DAYS=90
+TRASH_DIR="$HOME/.Trash"
+DRY_RUN=false
+FORCE=false
+SHOW_ALL=false
+LOG_FILE="$HOME/.cleanup.log"
+
+usage() {
+  echo "用法: cleanold -d <目录> [-t 天数] [-n] [-f] [-a]"
+  echo ""
+  echo "选项："
+  echo "  -d <目录>    指定清理目录（必填）"
+  echo "  -t <天数>    超过多少天未修改将被清理（默认90）"
+  echo "  -n           dry-run 模式，仅预览"
+  echo "  -f           跳过确认"
+  echo "  -a           显示所有匹配文件（默认只显示前100个）"
+  echo "  -h           显示帮助"
+  exit 1
+}
+
+while getopts "d:t:nfah" opt; do
+  case "$opt" in
+    d) TARGET_DIR="$OPTARG" ;;
+    t) DAYS="$OPTARG" ;;
+    n) DRY_RUN=true ;;
+    f) FORCE=true ;;
+    a) SHOW_ALL=true ;;
+    h) usage ;;
+    *) usage ;;
+  esac
+done
+
+if [ -z "$TARGET_DIR" ]; then
+  echo "❌ 错误：必须使用 -d 参数指定清理目录。"
+  usage
+fi
+
+if [ ! -d "$TARGET_DIR" ]; then
+  echo "❌ 目录不存在: $TARGET_DIR"
+  exit 1
+fi
+
+echo "🧹 清理任务开始"
+echo "---------------------------------------"
+echo "📁 目标目录 : $TARGET_DIR"
+echo "🕒 超过天数 : $DAYS 天"
+$DRY_RUN && echo "💡 模式     : dry-run（预览）" || echo "🚮 垃圾桶   : $TRASH_DIR"
+$FORCE && echo "⚡ 跳过确认 : 是"
+echo "📜 日志文件 : $LOG_FILE"
+echo "---------------------------------------"
+
+MATCHED=$(find "$TARGET_DIR" -mindepth 1 -mtime +"$DAYS" -print0)
+if [ -z "$MATCHED" ]; then
+  echo "✅ 没有找到超过 $DAYS 天未修改的文件。"
+  exit 0
+fi
+
+echo "🧐 匹配的文件/目录："
+if $SHOW_ALL; then
+  find "$TARGET_DIR" -mindepth 1 -mtime +"$DAYS" -print
+else
+  find "$TARGET_DIR" -mindepth 1 -mtime +"$DAYS" -print | head -n 100
+  echo "（仅显示前 100 条，使用 -a 显示全部）"
+fi
+echo "---------------------------------------"
+
+if $DRY_RUN; then
+  echo "✅ dry-run 模式结束。未执行删除。"
+  exit 0
+fi
+
+if ! $FORCE; then
+  read -p "⚠️ 确认将这些文件移动到垃圾桶？(y/N): " CONFIRM
+  [[ "$CONFIRM" =~ ^[yY]$ ]] || { echo "❎ 已取消操作。"; exit 0; }
+fi
+
+echo "🚀 开始移动..."
+find "$TARGET_DIR" -mindepth 1 -mtime +"$DAYS" -print0 | while IFS= read -r -d '' file; do
+  mv "$file" "$TRASH_DIR/" && \
+    echo "🗑️ 移动成功: $file" | tee -a "$LOG_FILE" || \
+    echo "⚠️ 移动失败: $file" | tee -a "$LOG_FILE"
+done
+
+echo "✅ 清理完成！日志记录于 $LOG_FILE"
